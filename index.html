@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalMegaPro Ultimate Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; color: #333; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        input { padding: 10px; margin: 5px 0; width: 300px; display: block; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        button:hover { opacity: 0.8; }
+        .btn-approve { background: #f39c12; }
+        .btn-withdraw { background: #28a745; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .stat-box { background: #e9ecef; padding: 10px; border-radius: 5px; text-align: center; border-bottom: 3px solid #007bff; }
+        .matrix-node { border: 2px solid #28a745; padding: 15px; margin-top: 10px; border-radius: 8px; background: #f9fff9; }
+        hr { opacity: 0.2; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <h1>GlobalMegaPro Pro Dashboard</h1>
+    <button id="connectBtn">Connect Wallet</button>
+    <p id="walletAddress" style="font-size: 13px; color: #666;"></p>
+
+    <hr>
+
+    <div class="card">
+        <h3>1. Register User</h3>
+        <input type="text" id="refAddress" placeholder="Referrer Address (0x...)">
+        <button onclick="registerUser()">Register</button>
+    </div>
+
+    <div class="card">
+        <h3>2. Deposit (Approve & Buy)</h3>
+        <input type="number" id="pkgId" placeholder="Package ID (0 to 11)">
+        <button class="btn-approve" onclick="approveUSDT()">Step 1: Approve USDT</button>
+        <button onclick="buyPackage()">Step 2: Buy Package</button>
+    </div>
+
+    <div class="card">
+        <h3>3. Your Income Stats</h3>
+        <button onclick="loadUserStats()">Refresh My Data</button>
+        <div class="stats-grid">
+            <div class="stat-box">ID: <b id="u_id">-</b></div>
+            <div class="stat-box">Balance: <b id="u_bal">0</b> USDT</div>
+            <div class="stat-box">Total Earned: <b id="u_earned">0</b></div>
+            <div class="stat-box">Direct: <b id="i_direct">0</b></div>
+            <div class="stat-box">Matrix: <b id="i_matrix">0</b></div>
+            <div class="stat-box">Single Leg: <b id="i_single">0</b></div>
+            <div class="stat-box">Daily/Level: <b id="i_other">0</b></div>
+            <div class="stat-box">Capping Loss: <b id="i_loss" style="color:red">0</b></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>4. Matrix ABC Tracker</h3>
+        <input type="number" id="checkPkgId" placeholder="Package ID">
+        <input type="number" id="checkIndex" placeholder="Queue Index (e.g. 0)">
+        <button onclick="checkMatrix()">Check ABC Fill Status</button>
+        <div id="matrixResult" class="matrix-node" style="display:none;">
+            <b>User Address:</b> <span id="m_user"></span><br>
+            <b>Slots Filled (0 to 3):</b> <span id="m_count" style="font-size: 20px; color: #28a745;"></span>
+            <p id="m_status" style="font-weight: bold; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>5. Withdraw Income</h3>
+        <button class="btn-withdraw" onclick="withdrawFunds()">Withdraw All (10% Fee)</button>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const CONTRACT_ADDRESS = "0xf7508fC91a0087860674296E1f2c2eDD3B4658a2"; // Apna Contract Address
+        const USDT_ADDRESS = "0x3010FbB189Db1738BaF48F3dcc06211dA4be10C9";     // Apna USDT Token Address
+        
+        // Minimal ABI (Bina lamba copy-paste kiye)
+        const MINIMAL_ABI = [
+            "function register(address ref) external",
+            "function buyPackage(uint256 id) external",
+            "function withdraw() external",
+            "function getUserTotalData(address user) view returns (uint256 id, address ref, uint256 bal, uint256 earned, uint256 cap, uint256 directs)",
+            "function getUserIncomeStats(address user) view returns (uint256 direct, uint256 level, uint256 single, uint256 matrix, uint256 daily, uint256 loss)",
+            "function getPoolNodeDetails(uint256 pkg, uint256 idx) view returns (address user, uint256 count)",
+            "function packages(uint256 id) view returns (uint256 price, uint256 poolAmount, uint256 levelAmount, uint256 dailyAmount, uint256 directAmount, uint256 capLimit, uint256 singleLegDepth)"
+        ];
+
+        const USDT_ABI = [
+            "function approve(address spender, uint256 amount) public returns (bool)"
+        ];
+
+        let provider, signer, contract, usdtContract;
+
+        // Wallet Connect Logic
+        document.getElementById('connectBtn').onclick = async () => {
+            if (window.ethereum) {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                const addr = await signer.getAddress();
+                document.getElementById('walletAddress').innerText = "Connected Wallet: " + addr;
+                
+                contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_ABI, signer);
+                usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
+                loadUserStats();
+            } else {
+                alert("Please install MetaMask!");
+            }
+        };
+
+        // 1. Register
+        async function registerUser() {
+            const ref = document.getElementById('refAddress').value || "0x0000000000000000000000000000000000000000";
+            const tx = await contract.register(ref);
+            await tx.wait();
+            alert("Registration Successful!");
+        }
+
+        // 2. Approve USDT (Step 1)
+        async function approveUSDT() {
+            const id = document.getElementById('pkgId').value;
+            if(id === "") return alert("Please enter Package ID");
+            const pkgData = await contract.packages(id);
+            const price = pkgData.price;
+            const tx = await usdtContract.approve(CONTRACT_ADDRESS, price);
+            await tx.wait();
+            alert("USDT Approved! Now click Buy Package.");
+        }
+
+        // 3. Buy Package (Step 2)
+        async function buyPackage() {
+            const id = document.getElementById('pkgId').value;
+            const tx = await contract.buyPackage(id);
+            await tx.wait();
+            alert("Package Purchased Successfully!");
+            loadUserStats();
+        }
+
+        // 4. Load Stats
+        async function loadUserStats() {
+            const addr = await signer.getAddress();
+            const data = await contract.getUserTotalData(addr);
+            const stats = await contract.getUserIncomeStats(addr);
+
+            document.getElementById('u_id').innerText = data.id.toString();
+            document.getElementById('u_bal').innerText = ethers.utils.formatEther(data.bal);
+            document.getElementById('u_earned').innerText = ethers.utils.formatEther(data.earned);
+            
+            document.getElementById('i_direct').innerText = ethers.utils.formatEther(stats.direct);
+            document.getElementById('i_matrix').innerText = ethers.utils.formatEther(stats.matrix);
+            document.getElementById('i_single').innerText = ethers.utils.formatEther(stats.single);
+            document.getElementById('i_other').innerText = ethers.utils.formatEther(stats.daily);
+            document.getElementById('i_loss').innerText = ethers.utils.formatEther(stats.loss);
+        }
+
+        // 5. Matrix ABC Tracker
+        async function checkMatrix() {
+            try {
+                const pkgId = document.getElementById('checkPkgId').value;
+                const idx = document.getElementById('checkIndex').value;
+                const res = await contract.getPoolNodeDetails(pkgId, idx);
+                
+                document.getElementById('matrixResult').style.display = "block";
+                document.getElementById('m_user').innerText = res.user;
+                document.getElementById('m_count').innerText = res.count.toString();
+                
+                let status = "";
+                if(res.count == 1) status = "🟢 A Slot Filled (Rebirth 1 Triggered)";
+                else if(res.count == 2) status = "🟢🟢 A & B Slots Filled (Payout Dispatched)";
+                else if(res.count == 3) status = "🟢🟢🟢 A, B, C Full (Cycle Complete & Rebirth 2 Done)";
+                else status = "⚪ Waiting for Global entries...";
+                document.getElementById('m_status').innerText = status;
+            } catch (e) {
+                alert("This index does not exist in the pool yet.");
+            }
+        }
+
+        // 6. Withdraw
+        async function withdrawFunds() {
+            const tx = await contract.withdraw();
+            await tx.wait();
+            alert("Withdrawal Successful!");
+            loadUserStats();
+        }
+    </script>
+</body>
+</html>
