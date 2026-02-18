@@ -9,7 +9,7 @@
         body { font-family: sans-serif; background: #f4f4f4; padding: 20px; color: #333; }
         .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         input { padding: 10px; margin: 5px 0; width: 300px; display: block; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-right: 5px; margin-top: 5px; }
         button:hover { opacity: 0.8; }
         .btn-approve { background: #f39c12; }
         .btn-withdraw { background: #28a745; }
@@ -73,11 +73,10 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const CONTRACT_ADDRESS = "0xf7508fC91a0087860674296E1f2c2eDD3B4658a2"; // Apna Contract Address
-        const USDT_ADDRESS = "0x3010FbB189Db1738BaF48F3dcc06211dA4be10C9";     // Apna USDT Token Address
-        
-        // Minimal ABI (Bina lamba copy-paste kiye)
+        // --- ADDRESSES ---
+        const CONTRACT_ADDRESS = "0xf7508fC91a0087860674296E1f2c2eDD3B4658a2"; 
+        const USDT_ADDRESS = "0x3010FbB189Db1738BaF48F3dcc06211dA4be10C9";     
+
         const MINIMAL_ABI = [
             "function register(address ref) external",
             "function buyPackage(uint256 id) external",
@@ -94,7 +93,6 @@
 
         let provider, signer, contract, usdtContract;
 
-        // Wallet Connect Logic
         document.getElementById('connectBtn').onclick = async () => {
             if (window.ethereum) {
                 provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -106,57 +104,66 @@
                 contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_ABI, signer);
                 usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
                 loadUserStats();
-            } else {
-                alert("Please install MetaMask!");
-            }
+            } else { alert("Please install MetaMask!"); }
         };
 
-        // 1. Register
         async function registerUser() {
-            const ref = document.getElementById('refAddress').value || "0x0000000000000000000000000000000000000000";
-            const tx = await contract.register(ref);
-            await tx.wait();
-            alert("Registration Successful!");
+            try {
+                const ref = document.getElementById('refAddress').value || "0x0000000000000000000000000000000000000000";
+                const tx = await contract.register(ref, { gasLimit: 200000 });
+                await tx.wait();
+                alert("Registration Successful!");
+            } catch (e) { alert("Error: " + (e.reason || e.message)); }
         }
 
-        // 2. Approve USDT (Step 1)
         async function approveUSDT() {
-            const id = document.getElementById('pkgId').value;
-            if(id === "") return alert("Please enter Package ID");
-            const pkgData = await contract.packages(id);
-            const price = pkgData.price;
-            const tx = await usdtContract.approve(CONTRACT_ADDRESS, price);
-            await tx.wait();
-            alert("USDT Approved! Now click Buy Package.");
+            try {
+                const id = document.getElementById('pkgId').value;
+                if(id === "") return alert("Enter Package ID first");
+                
+                const pkgData = await contract.packages(id);
+                const price = pkgData.price;
+                
+                // Fixed: Explicit gas limit for approval
+                const tx = await usdtContract.approve(CONTRACT_ADDRESS, price, { gasLimit: 100000 });
+                await tx.wait();
+                alert("USDT Approved! You can now Buy.");
+            } catch (e) { alert("Approval Error: " + (e.reason || e.message)); }
         }
 
-        // 3. Buy Package (Step 2)
         async function buyPackage() {
-            const id = document.getElementById('pkgId').value;
-            const tx = await contract.buyPackage(id);
-            await tx.wait();
-            alert("Package Purchased Successfully!");
-            loadUserStats();
+            try {
+                const id = document.getElementById('pkgId').value;
+                if(id === "") return alert("Enter Package ID first");
+                
+                // Fixed: Convert ID to Integer and add gasLimit for Rebirth recursion
+                const tx = await contract.buyPackage(parseInt(id), { 
+                    gasLimit: 1000000 
+                });
+                await tx.wait();
+                alert("Package Purchased!");
+                loadUserStats();
+            } catch (e) { alert("Buy Error: " + (e.reason || e.message)); }
         }
 
-        // 4. Load Stats
         async function loadUserStats() {
-            const addr = await signer.getAddress();
-            const data = await contract.getUserTotalData(addr);
-            const stats = await contract.getUserIncomeStats(addr);
+            try {
+                const addr = await signer.getAddress();
+                const data = await contract.getUserTotalData(addr);
+                const stats = await contract.getUserIncomeStats(addr);
 
-            document.getElementById('u_id').innerText = data.id.toString();
-            document.getElementById('u_bal').innerText = ethers.utils.formatEther(data.bal);
-            document.getElementById('u_earned').innerText = ethers.utils.formatEther(data.earned);
-            
-            document.getElementById('i_direct').innerText = ethers.utils.formatEther(stats.direct);
-            document.getElementById('i_matrix').innerText = ethers.utils.formatEther(stats.matrix);
-            document.getElementById('i_single').innerText = ethers.utils.formatEther(stats.single);
-            document.getElementById('i_other').innerText = ethers.utils.formatEther(stats.daily);
-            document.getElementById('i_loss').innerText = ethers.utils.formatEther(stats.loss);
+                document.getElementById('u_id').innerText = data.id.toString();
+                document.getElementById('u_bal').innerText = ethers.utils.formatEther(data.bal);
+                document.getElementById('u_earned').innerText = ethers.utils.formatEther(data.earned);
+                
+                document.getElementById('i_direct').innerText = ethers.utils.formatEther(stats.direct);
+                document.getElementById('i_matrix').innerText = ethers.utils.formatEther(stats.matrix);
+                document.getElementById('i_single').innerText = ethers.utils.formatEther(stats.single);
+                document.getElementById('i_other').innerText = ethers.utils.formatEther(stats.daily);
+                document.getElementById('i_loss').innerText = ethers.utils.formatEther(stats.loss);
+            } catch (e) { console.log("Stats error:", e); }
         }
 
-        // 5. Matrix ABC Tracker
         async function checkMatrix() {
             try {
                 const pkgId = document.getElementById('checkPkgId').value;
@@ -167,23 +174,22 @@
                 document.getElementById('m_user').innerText = res.user;
                 document.getElementById('m_count').innerText = res.count.toString();
                 
-                let status = "";
-                if(res.count == 1) status = "🟢 A Slot Filled (Rebirth 1 Triggered)";
-                else if(res.count == 2) status = "🟢🟢 A & B Slots Filled (Payout Dispatched)";
-                else if(res.count == 3) status = "🟢🟢🟢 A, B, C Full (Cycle Complete & Rebirth 2 Done)";
-                else status = "⚪ Waiting for Global entries...";
-                document.getElementById('m_status').innerText = status;
-            } catch (e) {
-                alert("This index does not exist in the pool yet.");
-            }
+                let s = "";
+                if(res.count == 1) s = "🟢 A Slot Filled (Rebirth 1)";
+                else if(res.count == 2) s = "🟢🟢 A & B Filled (Payout)";
+                else if(res.count == 3) s = "🟢🟢🟢 A, B, C Full (Cycle Done)";
+                else s = "⚪ Waiting...";
+                document.getElementById('m_status').innerText = s;
+            } catch (e) { alert("Index not found in this package."); }
         }
 
-        // 6. Withdraw
         async function withdrawFunds() {
-            const tx = await contract.withdraw();
-            await tx.wait();
-            alert("Withdrawal Successful!");
-            loadUserStats();
+            try {
+                const tx = await contract.withdraw({ gasLimit: 200000 });
+                await tx.wait();
+                alert("Withdrawal Successful!");
+                loadUserStats();
+            } catch (e) { alert("Withdrawal Error: " + (e.reason || e.message)); }
         }
     </script>
 </body>
