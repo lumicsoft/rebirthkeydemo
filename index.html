@@ -20,11 +20,17 @@
         .stat-box b { font-size: 1.2em; display: block; margin-top: 5px; color: #202124; }
         .loss-text { color: #d93025 !important; }
 
+        /* Tree Styles */
         .matrix-node { border: 2px solid #28a745; padding: 20px; margin-top: 15px; border-radius: 12px; background: #f8fff8; text-align: center; }
-        .slots { display: flex; justify-content: center; gap: 20px; margin-top: 15px; }
-        .slot { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; background: white; }
+        .tree-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+        .slots { display: flex; justify-content: center; gap: 15px; margin-top: 20px; width: 100%; }
+        .slot-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 100px; }
+        .slot { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; background: white; transition: 0.3s; margin-bottom: 5px; }
         .slot.filled { background: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 10px rgba(40,167,69,0.5); }
-        .pos-badge { background: #e8f0fe; color: #1a73e8; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 2px; display: inline-block; }
+        .addr-text { font-size: 10px; color: #666; word-break: break-all; max-width: 90px; height: 25px; overflow: hidden; }
+        
+        .pos-badge { background: #e8f0fe; color: #1a73e8; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 2px; display: inline-block; cursor: pointer; }
+        .pos-badge:hover { background: #d2e3fc; }
         hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
     </style>
 </head>
@@ -60,49 +66,64 @@
 
     <div class="card">
         <h3>My Matrix Positions</h3>
-        <p style="font-size: 0.9em; color: #666;">Check where your original and rebirth IDs are located.</p>
+        <p style="font-size: 0.9em; color: #666;">Click on an Index ID to auto-load it in Explorer below.</p>
         <input type="number" id="posPkgId" placeholder="Package ID (0-11)" value="0">
         <button onclick="viewMyPositions()">View My Node Indices</button>
         <div id="myIndicesList" style="margin-top: 10px;"></div>
     </div>
 
     <div class="card">
-        <h3>Actions</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-            <div style="flex: 1; min-width: 300px;">
-                <h4>1. Registration</h4>
-                <input type="text" id="refAddress" placeholder="Referrer Address">
-                <button onclick="registerUser()">Register</button>
+        <h3>Matrix Explorer (Real-Time Tree)</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="checkPkgId" placeholder="Package ID" value="0">
+            <input type="number" id="checkIndex" placeholder="Enter Queue Index">
+        </div>
+        <button onclick="checkMatrix()">Search Node Tree</button>
+        
+        <div id="matrixResult" class="matrix-node" style="display:none;">
+            <div class="tree-container">
+                <div style="margin-bottom: 10px;">
+                    <div class="slot filled" style="margin: 0 auto;">P</div>
+                    <b>Node Owner:</b> <span id="m_user" style="font-size: 12px;"></span><br>
+                    <b>Rebirths:</b> <span id="m_rebirths" style="color:#1a73e8;">0</span>
+                </div>
+
+                
+
+                <div class="slots">
+                    <div class="slot-wrapper">
+                        <div id="slotA" class="slot">A</div>
+                        <div id="addrA" class="addr-text">Empty</div>
+                    </div>
+                    <div class="slot-wrapper">
+                        <div id="slotB" class="slot">B</div>
+                        <div id="addrB" class="addr-text">Empty</div>
+                    </div>
+                    <div class="slot-wrapper">
+                        <div id="slotC" class="slot">C</div>
+                        <div id="addrC" class="addr-text">Empty</div>
+                    </div>
+                </div>
             </div>
-            <div style="flex: 1; min-width: 300px;">
-                <h4>2. Activation / Retopup</h4>
-                <input type="number" id="pkgId" placeholder="Package ID (0-11)">
-                <button class="btn-approve" onclick="approveUSDT()">Approve USDT</button>
-                <button onclick="buyPackage()">Buy Package</button>
+            
+            <p id="m_status" style="font-weight: bold; margin-top: 15px; color: #28a745;"></p>
+            <div style="background: #fffbe6; padding: 10px; border-radius: 8px; font-size: 13px; border: 1px solid #ffe58f; margin-top: 10px;">
+                💡 <b>Logic:</b> Slot A (Rebirth to B) | Slot B (Payout) | Slot C (Global Rebirth)
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h3>Matrix Explorer (ABC Slots)</h3>
-        <div style="display: flex; gap: 10px;">
-            <input type="number" id="checkPkgId" placeholder="Package ID" value="0">
-            <input type="number" id="checkIndex" placeholder="Enter Queue Index">
-        </div>
-        <button onclick="checkMatrix()">Search Node</button>
-        
-        <div id="matrixResult" class="matrix-node" style="display:none;">
-            <div><b>Node Owner:</b> <span id="m_user"></span></div>
-            <div style="margin-top:5px;"><b>Total Rebirths of this User:</b> <span id="m_rebirths" style="color:#1a73e8; font-weight:bold;">0</span></div>
-            
-            <div class="slots">
-                <div id="slotA" class="slot">A</div>
-                <div id="slotB" class="slot">B</div>
-                <div id="slotC" class="slot">C</div>
+        <h3>Registration & Activation</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+            <div style="flex: 1; min-width: 300px;">
+                <input type="text" id="refAddress" placeholder="Referrer Address">
+                <button onclick="registerUser()">Register</button>
             </div>
-            <p id="m_status" style="font-weight: bold; margin-top: 15px; color: #28a745;"></p>
-            <div style="background: #fffbe6; padding: 10px; border-radius: 8px; font-size: 13px; border: 1px solid #ffe58f;">
-                💡 <b>Loop Rule:</b> Slot A trigger rebirth to fill Slot B. Slot C trigger rebirth to global tree.
+            <div style="flex: 1; min-width: 300px;">
+                <input type="number" id="pkgId" placeholder="Package ID (0-11)">
+                <button class="btn-approve" onclick="approveUSDT()">1. Approve USDT</button>
+                <button onclick="buyPackage()">2. Buy Package</button>
             </div>
         </div>
     </div>
@@ -120,8 +141,8 @@
             "function buyPackage(uint256 id) external",
             "function withdraw() external",
             "function getUserTotalData(address user) view returns (uint256 id, address ref, uint256 bal, uint256 earned, uint256 cap, uint256 directs, uint256 d_inc, uint256 l_inc, uint256 s_inc, uint256 m_inc, uint256 dy_inc, uint256 loss)",
-            "function getPoolNodeDetails(uint256 pkg, uint256 idx) view returns (address user, uint256 count, uint256 rCount)",
-            "function getUserIndices(address user, uint256 pkg) view returns (uint256[])",
+            "function getMatrixTree(uint256 pkg, uint256 idx) view returns (address ownerAddr, uint256 filledCount, uint256 ownerRebirths, address slotA_User, address slotB_User, address slotC_User)",
+            "function getUserMatrixPositions(address user, uint256 pkg) view returns (uint256[])",
             "function packages(uint256 id) view returns (uint256 price, uint256 poolAmount, uint256 levelAmount, uint256 dailyAmount, uint256 directAmount, uint256 capLimit, uint256 singleLegDepth)"
         ];
 
@@ -147,12 +168,10 @@
             try {
                 const addr = await signer.getAddress();
                 const d = await contract.getUserTotalData(addr);
-
                 document.getElementById('u_id').innerText = d.id.toString();
                 document.getElementById('u_bal').innerText = ethers.utils.formatEther(d.bal) + " USDT";
                 document.getElementById('u_earned').innerText = ethers.utils.formatEther(d.earned) + " USDT";
                 document.getElementById('u_cap').innerText = ethers.utils.formatEther(d.cap) + " USDT";
-                
                 document.getElementById('i_direct').innerText = ethers.utils.formatEther(d.d_inc);
                 document.getElementById('i_level').innerText = ethers.utils.formatEther(d.l_inc);
                 document.getElementById('i_single').innerText = ethers.utils.formatEther(d.s_inc);
@@ -166,13 +185,55 @@
             try {
                 const pkgId = document.getElementById('posPkgId').value;
                 const addr = await signer.getAddress();
-                const indices = await contract.getUserIndices(addr, pkgId);
+                const indices = await contract.getUserMatrixPositions(addr, pkgId);
                 const container = document.getElementById('myIndicesList');
-                container.innerHTML = indices.map(idx => `<span class="pos-badge">Index #${idx}</span>`).join('');
-                if(indices.length === 0) container.innerHTML = "No positions in this package yet.";
+                container.innerHTML = indices.map(idx => `<span class="pos-badge" onclick="loadIndex(${idx})">Index #${idx}</span>`).join('');
+                if(indices.length === 0) container.innerHTML = "No positions found.";
             } catch (e) { alert("Error loading positions"); }
         }
 
+        function loadIndex(idx) {
+            document.getElementById('checkIndex').value = idx;
+            document.getElementById('checkPkgId').value = document.getElementById('posPkgId').value;
+            checkMatrix();
+        }
+
+        async function checkMatrix() {
+            try {
+                const pkgId = document.getElementById('checkPkgId').value;
+                const idx = document.getElementById('checkIndex').value;
+                const res = await contract.getMatrixTree(pkgId, idx);
+                
+                document.getElementById('matrixResult').style.display = "block";
+                document.getElementById('m_user').innerText = res.ownerAddr;
+                document.getElementById('m_rebirths').innerText = res.ownerRebirths.toString();
+                
+                updateSlot('slotA', 'addrA', res.slotA_User, res.filledCount >= 1);
+                updateSlot('slotB', 'addrB', res.slotB_User, res.filledCount >= 2);
+                updateSlot('slotC', 'addrC', res.slotC_User, res.filledCount >= 3);
+
+                let st = "Waiting for members...";
+                if(res.filledCount == 1) st = "Slot A filled: Auto-rebirth triggered for Slot B.";
+                if(res.filledCount == 2) st = "Slot B filled: Matrix income sent to owner!";
+                if(res.filledCount == 3) st = "Slot C filled: Node cycled. New rebirth in global pool.";
+                document.getElementById('m_status').innerText = st;
+
+            } catch (e) { alert("Matrix Index not found."); }
+        }
+
+        function updateSlot(slotId, addrId, address, isFilled) {
+            const slotEl = document.getElementById(slotId);
+            const addrEl = document.getElementById(addrId);
+            if(isFilled && address !== "0x0000000000000000000000000000000000000000") {
+                slotEl.classList.add('filled');
+                addrEl.innerText = address.substring(0,6) + "..." + address.substring(38);
+            } else {
+                slotEl.classList.remove('filled');
+                addrEl.innerText = "Empty";
+            }
+        }
+
+        // --- Other Utility Functions (Withdraw, Buy, Register) ---
         async function approveUSDT() {
             try {
                 const id = document.getElementById('pkgId').value;
@@ -180,49 +241,25 @@
                 const tx = await usdtContract.approve(CONTRACT_ADDRESS, pkgData.price);
                 await tx.wait();
                 alert("Approval Success!");
-            } catch (e) { alert("Approval Failed: " + e.message); }
+            } catch (e) { alert("Failed: " + e.message); }
         }
 
         async function buyPackage() {
             try {
                 const id = document.getElementById('pkgId').value;
-                const tx = await contract.buyPackage(id, { gasLimit: 1500000 }); // High gas for rebirth loops
+                const tx = await contract.buyPackage(id, { gasLimit: 2000000 });
                 await tx.wait();
                 alert("Purchase Success!");
                 loadUserStats();
-            } catch (e) { alert("Purchase Failed. Check if USDT is approved."); }
-        }
-
-        async function checkMatrix() {
-            try {
-                const pkgId = document.getElementById('checkPkgId').value;
-                const idx = document.getElementById('checkIndex').value;
-                const res = await contract.getPoolNodeDetails(pkgId, idx);
-                
-                document.getElementById('matrixResult').style.display = "block";
-                document.getElementById('m_user').innerText = res.user;
-                document.getElementById('m_rebirths').innerText = res.rCount.toString();
-                
-                document.getElementById('slotA').className = 'slot' + (res.count >= 1 ? ' filled' : '');
-                document.getElementById('slotB').className = 'slot' + (res.count >= 2 ? ' filled' : '');
-                document.getElementById('slotC').className = 'slot' + (res.count >= 3 ? ' filled' : '');
-
-                let statusText = "Searching for next member...";
-                if(res.count == 1) statusText = "A is Filled! Next: Auto-Rebirth will fill B.";
-                if(res.count == 2) statusText = "B is Filled! Payout sent to Owner.";
-                if(res.count == 3) statusText = "C is Filled! Node cycled and Rebirth sent to bottom.";
-                document.getElementById('m_status').innerText = statusText;
-
-            } catch (e) { alert("Matrix Index not found in this package."); }
+            } catch (e) { alert("Purchase Failed. check allowance/balance."); }
         }
 
         async function withdrawFunds() {
             try {
                 const tx = await contract.withdraw();
                 await tx.wait();
-                alert("Withdrawal Complete!");
                 loadUserStats();
-            } catch (e) { alert("Withdraw Failed: " + e.message); }
+            } catch (e) { alert("Withdraw Failed"); }
         }
 
         async function registerUser() {
@@ -230,8 +267,8 @@
                 const ref = document.getElementById('refAddress').value || "0x0000000000000000000000000000000000000000";
                 const tx = await contract.register(ref);
                 await tx.wait();
-                alert("Registration Successful!");
-            } catch (e) { alert("Registration Failed"); }
+                alert("Registered!");
+            } catch (e) { alert("Failed"); }
         }
     </script>
 </body>
