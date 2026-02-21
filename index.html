@@ -6,270 +6,243 @@
     <title>GlobalMegaPro Ultimate Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        :root { --primary: #1a73e8; --success: #28a745; --warning: #f39c12; --danger: #d93025; --dark: #202124; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 1200px; margin: auto; }
+        .header { text-align: center; padding: 20px; background: white; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        h1 { color: #1a73e8; text-align: center; }
-        input { padding: 12px; margin: 8px 0; width: 100%; max-width: 400px; display: block; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 5px; }
-        button:hover { background: #1557b0; transform: translateY(-1px); }
-        .btn-approve { background: #f39c12; }
-        .btn-withdraw { background: #28a745; width: 100%; font-size: 18px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px; }
         
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
-        .stat-box { background: #fff; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #eee; border-top: 4px solid #1a73e8; }
-        .stat-box b { font-size: 1.2em; display: block; margin-top: 5px; color: #202124; }
-        .loss-text { color: #d93025 !important; }
+        /* Stat Boxes */
+        .stat-box { padding: 20px; border-radius: 10px; text-align: center; border-top: 5px solid var(--primary); background: #fff; transition: 0.3s; }
+        .stat-box:hover { transform: translateY(-5px); }
+        .stat-box span { font-size: 0.9em; color: #666; font-weight: 600; text-transform: uppercase; }
+        .stat-box b { font-size: 1.4em; display: block; margin-top: 10px; }
 
-        /* Tree Styles */
-        .matrix-node { border: 2px solid #28a745; padding: 20px; margin-top: 15px; border-radius: 12px; background: #f8fff8; text-align: center; }
-        .tree-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
-        .slots { display: flex; justify-content: center; gap: 15px; margin-top: 20px; width: 100%; }
-        .slot-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 100px; }
-        .slot { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; background: white; transition: 0.3s; margin-bottom: 5px; }
-        .slot.filled { background: #28a745; color: white; border-color: #1e7e34; box-shadow: 0 0 10px rgba(40,167,69,0.5); }
-        .addr-text { font-size: 10px; color: #666; word-break: break-all; max-width: 90px; height: 25px; overflow: hidden; }
-        
-        .pos-badge { background: #e8f0fe; color: #1a73e8; padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 2px; display: inline-block; cursor: pointer; }
-        .pos-badge:hover { background: #d2e3fc; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
+        /* Matrix Tree */
+        .matrix-container { display: flex; flex-direction: column; align-items: center; background: #f9f9f9; padding: 20px; border-radius: 10px; }
+        .node-main { width: 80px; height: 80px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-bottom: 30px; position: relative; }
+        .node-main::after { content: ''; position: absolute; bottom: -30px; width: 2px; height: 30px; background: #ccc; }
+        .slots { display: flex; gap: 20px; }
+        .slot-card { text-align: center; width: 100px; }
+        .slot-circle { width: 50px; height: 50px; border-radius: 50%; border: 3px solid #ddd; margin: 0 auto 5px; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #fff; }
+        .slot-circle.filled { background: var(--success); color: white; border-color: #1e7e34; box-shadow: 0 0 10px rgba(40,167,69,0.4); }
+        .addr-small { font-size: 10px; color: #777; word-break: break-all; }
+
+        /* Team List */
+        .list-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .list-table th, .list-table td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        .list-table th { background: #f8f9fa; }
+
+        input, select { padding: 12px; margin: 10px 0; width: 100%; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+        button { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .bg-success { background: #e8f5e9; color: var(--success); }
     </style>
 </head>
 <body>
 
-    <h1>GlobalMegaPro Ultimate Dashboard</h1>
-    <div style="text-align: center;">
-        <button id="connectBtn">Connect Wallet</button>
-        <p id="walletAddress" style="font-size: 14px; color: #5f6368; margin-top: 10px;"></p>
+<div class="container">
+    <div class="header">
+        <h1>GlobalMegaPro Ultimate</h1>
+        <button id="connectBtn" style="width: auto;">Connect Wallet</button>
+        <p id="userWallet" style="margin-top:10px; color: var(--primary); font-weight: bold;"></p>
     </div>
 
-    <hr>
-
-    <div class="stats-grid">
-        <div class="stat-box">User ID <b id="u_id">-</b></div>
-        <div class="stat-box">Withdrawable <b id="u_bal">0.00</b></div>
-        <div class="stat-box">Total Earned <b id="u_earned">0.00</b></div>
-        <div class="stat-box">Income Cap <b id="u_cap">0.00</b></div>
+    <div class="grid-4">
+        <div class="stat-box"><span>User ID</span> <b id="st_id">0</b></div>
+        <div class="stat-box" style="border-top-color: var(--success);"><span>Withdrawable</span> <b id="st_bal">0.00</b></div>
+        <div class="stat-box"><span>Total Earned</span> <b id="st_earned">0.00</b></div>
+        <div class="stat-box" style="border-top-color: var(--danger);"><span>Income Cap</span> <b id="st_cap">0.00</b></div>
     </div>
 
-    <div class="card">
-        <h3>Income Breakdown</h3>
-        <button onclick="loadUserStats()">🔄 Refresh Dashboard</button>
-        <div class="stats-grid">
-            <div class="stat-box">Direct Income <b id="i_direct">0</b></div>
-            <div class="stat-box">Level Income <b id="i_level">0</b></div>
-            <div class="stat-box">Single Leg <b id="i_single">0</b></div>
-            <div class="stat-box">Matrix Payout <b id="i_matrix">0</b></div>
-            <div class="stat-box">Daily Pool <b id="i_daily">0</b></div>
-            <div class="stat-box" style="border-top-color: red;">Capping Loss <b id="i_loss" class="loss-text">0</b></div>
+    <div class="card" style="margin-top: 20px;">
+        <h3>Detailed Income Report</h3>
+        <div class="grid-4">
+            <div class="stat-box"><span>Direct</span> <b id="in_direct">0</b></div>
+            <div class="stat-box"><span>Level</span> <b id="in_level">0</b></div>
+            <div class="stat-box"><span>Single Leg</span> <b id="in_single">0</b></div>
+            <div class="stat-box"><span>Matrix Pool</span> <b id="in_matrix">0</b></div>
+            <div class="stat-box"><span>Daily Pool</span> <b id="in_daily">0</b></div>
+            <div class="stat-box"><span>Rewards</span> <b id="in_reward">0</b></div>
+            <div class="stat-box" style="border-top-color: var(--danger);"><span>Capping Loss</span> <b id="in_loss">0</b></div>
+            <div class="stat-box" style="border-top-color: var(--warning);"><span>Directs</span> <b id="st_directs">0</b></div>
         </div>
     </div>
 
-    <div class="card">
-        <h3>My Matrix Positions</h3>
-        <p style="font-size: 0.9em; color: #666;">Click on an Index ID to auto-load it in Explorer below.</p>
-        <input type="number" id="posPkgId" placeholder="Package ID (0-11)" value="0">
-        <button onclick="viewMyPositions()">View My Node Indices</button>
-        <div id="myIndicesList" style="margin-top: 10px;"></div>
-    </div>
-
-    <div class="card">
-        <h3>Matrix Explorer (Real-Time Tree)</h3>
-        <div style="display: flex; gap: 10px;">
-            <input type="number" id="checkPkgId" placeholder="Package ID" value="0">
-            <input type="number" id="checkIndex" placeholder="Enter Queue Index">
-        </div>
-        <button onclick="checkMatrix()">Search Node Tree</button>
-        
-        <div id="matrixResult" class="matrix-node" style="display:none;">
-            <div class="tree-container">
-                <div style="margin-bottom: 10px;">
-                    <div class="slot filled" style="margin: 0 auto;">P</div>
-                    <b>Node Owner:</b> <span id="m_user" style="font-size: 12px;"></span><br>
-                    <b>Rebirths:</b> <span id="m_rebirths" style="color:#1a73e8;">0</span>
-                </div>
-
-                
-
-                <div class="slots">
-                    <div class="slot-wrapper">
-                        <div id="slotA" class="slot">A</div>
-                        <div id="addrA" class="addr-text">Empty</div>
-                    </div>
-                    <div class="slot-wrapper">
-                        <div id="slotB" class="slot">B</div>
-                        <div id="addrB" class="addr-text">Empty</div>
-                    </div>
-                    <div class="slot-wrapper">
-                        <div id="slotC" class="slot">C</div>
-                        <div id="addrC" class="addr-text">Empty</div>
-                    </div>
-                </div>
+    <div class="grid-4" style="grid-template-columns: 2fr 1fr;">
+        <div class="card">
+            <h3>Matrix Visualizer (3x1)</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <select id="mtxPkg">
+                    <option value="0">Package 0 ($5)</option>
+                    <option value="1">Package 1 ($44)</option>
+                    <option value="3">Package 3 ($106)</option>
+                </select>
+                <input type="number" id="mtxIdx" placeholder="Enter Queue Index (e.g. 0, 1, 2)">
+                <button onclick="renderMatrix()" style="width: 200px;">View Tree</button>
             </div>
             
-            <p id="m_status" style="font-weight: bold; margin-top: 15px; color: #28a745;"></p>
-            <div style="background: #fffbe6; padding: 10px; border-radius: 8px; font-size: 13px; border: 1px solid #ffe58f; margin-top: 10px;">
-                💡 <b>Logic:</b> Slot A (Rebirth to B) | Slot B (Payout) | Slot C (Global Rebirth)
+            <div id="matrixDisplay" class="matrix-container" style="display: none;">
+                <div class="node-main" id="mtxOwner">P</div>
+                <div class="slots">
+                    <div class="slot-card"><div id="sA" class="slot-circle">A</div><div id="adrA" class="addr-small">-</div></div>
+                    <div class="slot-card"><div id="sB" class="slot-circle">B</div><div id="adrB" class="addr-small">-</div></div>
+                    <div class="slot-card"><div id="sC" class="slot-circle">C</div><div id="adrC" class="addr-small">-</div></div>
+                </div>
+                <p id="mtxStatus" style="margin-top: 20px; font-weight: bold;"></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>My Level Team</h3>
+            <button class="btn-outline" onclick="loadTeam()">Refresh Team List</button>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <table class="list-table">
+                    <thead><tr><th>Address</th></tr></thead>
+                    <tbody id="teamBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h3>Registration & Activation</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-            <div style="flex: 1; min-width: 300px;">
-                <input type="text" id="refAddress" placeholder="Referrer Address">
-                <button onclick="registerUser()">Register</button>
+        <h3>Join & Upgrade</h3>
+        <div class="grid-4" style="grid-template-columns: 1fr 1fr;">
+            <div>
+                <label>New Registration</label>
+                <input type="text" id="refAddr" placeholder="Referrer Wallet Address">
+                <button onclick="handleRegister()">Register Now</button>
             </div>
-            <div style="flex: 1; min-width: 300px;">
-                <input type="number" id="pkgId" placeholder="Package ID (0-11)">
-                <button class="btn-approve" onclick="approveUSDT()">1. Approve USDT</button>
-                <button onclick="buyPackage()">2. Buy Package</button>
+            <div>
+                <label>Buy/Upgrade Package</label>
+                <input type="number" id="buyPkgId" placeholder="Package ID (0-11)">
+                <button class="btn-outline" onclick="handleApprove()">1. Approve USDT</button>
+                <button onclick="handleBuy()" style="background: var(--success);">2. Confirm Purchase</button>
             </div>
         </div>
+        <button onclick="handleWithdraw()" style="background: var(--dark); margin-top: 20px;">Withdraw All Funds (10% Fee)</button>
     </div>
+</div>
 
-    <div class="card">
-        <button class="btn-withdraw" onclick="withdrawFunds()">Withdraw All Earnings (10% Fee)</button>
-    </div>
+<script>
+    const CONTRACT_ADDR = "0x1ABCAe4caaad193Cdb7876a0ABD8a8e92193052D";
+    const USDT_ADDR = "0x3B66b1E08F55AF26c8eA14a73dA64b6bC8D799dE";
+    
+    // Updated ABI for your new Smart Contract
+    const ABI = [
+        "function register(address ref) external",
+        "function buyPackage(uint256 id) external",
+        "function withdraw() external",
+        "function getUserTotalData(address user) view returns (uint256[6] stats, uint256[6] incomes, address ref)",
+        "function getMatrixTree(uint256 pkg, uint256 idx) view returns (address ownerAddr, uint256 filledCount, uint256 ownerRebirths, address slotA, address slotB, address slotC)",
+        "function getLevelTeam(address user) view returns (address[])",
+        "function packages(uint256 id) view returns (uint256 price)"
+    ];
 
-    <script>
-        const CONTRACT_ADDRESS = "0x1ABCAe4caaad193Cdb7876a0ABD8a8e92193052D"; 
-        const USDT_ADDRESS = "0x3B66b1E08F55AF26c8eA14a73dA64b6bC8D799dE";      
+    let signer, contract, usdt;
 
-        const MINIMAL_ABI = [
-            "function register(address ref) external",
-            "function buyPackage(uint256 id) external",
-            "function withdraw() external",
-            "function getUserTotalData(address user) view returns (uint256 id, address ref, uint256 bal, uint256 earned, uint256 cap, uint256 directs, uint256 d_inc, uint256 l_inc, uint256 s_inc, uint256 m_inc, uint256 dy_inc, uint256 loss)",
-            "function getMatrixTree(uint256 pkg, uint256 idx) view returns (address ownerAddr, uint256 filledCount, uint256 ownerRebirths, address slotA_User, address slotB_User, address slotC_User)",
-            "function getUserMatrixPositions(address user, uint256 pkg) view returns (uint256[])",
-            "function packages(uint256 id) view returns (uint256 price, uint256 poolAmount, uint256 levelAmount, uint256 dailyAmount, uint256 directAmount, uint256 capLimit, uint256 singleLegDepth)"
-        ];
-
-        const USDT_ABI = ["function approve(address spender, uint256 amount) public returns (bool)"];
-
-        let provider, signer, contract, usdtContract;
-
-        document.getElementById('connectBtn').onclick = async () => {
-            if (window.ethereum) {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                signer = provider.getSigner();
-                const addr = await signer.getAddress();
-                document.getElementById('walletAddress').innerText = "Wallet: " + addr;
-                
-                contract = new ethers.Contract(CONTRACT_ADDRESS, MINIMAL_ABI, signer);
-                usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
-                loadUserStats();
-            } else { alert("Please install MetaMask!"); }
-        };
-
-        async function loadUserStats() {
-            try {
-                const addr = await signer.getAddress();
-                const d = await contract.getUserTotalData(addr);
-                document.getElementById('u_id').innerText = d.id.toString();
-                document.getElementById('u_bal').innerText = ethers.utils.formatEther(d.bal) + " USDT";
-                document.getElementById('u_earned').innerText = ethers.utils.formatEther(d.earned) + " USDT";
-                document.getElementById('u_cap').innerText = ethers.utils.formatEther(d.cap) + " USDT";
-                document.getElementById('i_direct').innerText = ethers.utils.formatEther(d.d_inc);
-                document.getElementById('i_level').innerText = ethers.utils.formatEther(d.l_inc);
-                document.getElementById('i_single').innerText = ethers.utils.formatEther(d.s_inc);
-                document.getElementById('i_matrix').innerText = ethers.utils.formatEther(d.m_inc);
-                document.getElementById('i_daily').innerText = ethers.utils.formatEther(d.dy_inc);
-                document.getElementById('i_loss').innerText = ethers.utils.formatEther(d.loss);
-            } catch (e) { console.error(e); }
+    document.getElementById('connectBtn').onclick = async () => {
+        if (window.ethereum) {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            signer = provider.getSigner();
+            const addr = await signer.getAddress();
+            document.getElementById('userWallet').innerText = "Active: " + addr;
+            
+            contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            usdt = new ethers.Contract(USDT_ADDR, ["function approve(address s, uint256 a) public returns (bool)"], signer);
+            
+            loadAllData();
         }
+    };
 
-        async function viewMyPositions() {
-            try {
-                const pkgId = document.getElementById('posPkgId').value;
-                const addr = await signer.getAddress();
-                const indices = await contract.getUserMatrixPositions(addr, pkgId);
-                const container = document.getElementById('myIndicesList');
-                container.innerHTML = indices.map(idx => `<span class="pos-badge" onclick="loadIndex(${idx})">Index #${idx}</span>`).join('');
-                if(indices.length === 0) container.innerHTML = "No positions found.";
-            } catch (e) { alert("Error loading positions"); }
+    async function loadAllData() {
+        const addr = await signer.getAddress();
+        const d = await contract.getUserTotalData(addr);
+        
+        // Stats mapping from stats[6] array
+        document.getElementById('st_id').innerText = d.stats[0];
+        document.getElementById('st_bal').innerText = ethers.utils.formatEther(d.stats[1]);
+        document.getElementById('st_earned').innerText = ethers.utils.formatEther(d.stats[2]);
+        document.getElementById('st_cap').innerText = ethers.utils.formatEther(d.stats[3]);
+        document.getElementById('st_directs').innerText = d.stats[4];
+        document.getElementById('in_loss').innerText = ethers.utils.formatEther(d.stats[5]);
+
+        // Incomes mapping from incomes[6] array
+        document.getElementById('in_direct').innerText = ethers.utils.formatEther(d.incomes[0]);
+        document.getElementById('in_level').innerText = ethers.utils.formatEther(d.incomes[1]);
+        document.getElementById('in_single').innerText = ethers.utils.formatEther(d.incomes[2]);
+        document.getElementById('in_matrix').innerText = ethers.utils.formatEther(d.incomes[3]);
+        document.getElementById('in_daily').innerText = ethers.utils.formatEther(d.incomes[4]);
+        document.getElementById('in_reward').innerText = ethers.utils.formatEther(d.incomes[5]);
+    }
+
+    async function renderMatrix() {
+        const pkg = document.getElementById('mtxPkg').value;
+        const idx = document.getElementById('mtxIdx').value;
+        try {
+            const res = await contract.getMatrixTree(pkg, idx);
+            document.getElementById('matrixDisplay').style.display = "flex";
+            document.getElementById('mtxStatus').innerText = `Filled: ${res.filledCount}/3 | Rebirths: ${res.ownerRebirths}`;
+            
+            updateSlot('sA', 'adrA', res.slotA, res.filledCount >= 1);
+            updateSlot('sB', 'adrB', res.slotB, res.filledCount >= 2);
+            updateSlot('sC', 'adrC', res.slotC, res.filledCount >= 3);
+        } catch (e) { alert("Matrix Data not found for this Index"); }
+    }
+
+    function updateSlot(sid, aid, addr, isFilled) {
+        const s = document.getElementById(sid);
+        const a = document.getElementById(aid);
+        if(isFilled && addr !== "0x0000000000000000000000000000000000000000") {
+            s.classList.add('filled');
+            a.innerText = addr.substring(0,6) + "...";
+        } else {
+            s.classList.remove('filled');
+            a.innerText = "Empty";
         }
+    }
 
-        function loadIndex(idx) {
-            document.getElementById('checkIndex').value = idx;
-            document.getElementById('checkPkgId').value = document.getElementById('posPkgId').value;
-            checkMatrix();
-        }
+    async function loadTeam() {
+        const addr = await signer.getAddress();
+        const team = await contract.getLevelTeam(addr);
+        const body = document.getElementById('teamBody');
+        body.innerHTML = team.map(m => `<tr><td>${m} <span class="badge bg-success">Direct</span></td></tr>`).join('');
+    }
 
-        async function checkMatrix() {
-            try {
-                const pkgId = document.getElementById('checkPkgId').value;
-                const idx = document.getElementById('checkIndex').value;
-                const res = await contract.getMatrixTree(pkgId, idx);
-                
-                document.getElementById('matrixResult').style.display = "block";
-                document.getElementById('m_user').innerText = res.ownerAddr;
-                document.getElementById('m_rebirths').innerText = res.ownerRebirths.toString();
-                
-                updateSlot('slotA', 'addrA', res.slotA_User, res.filledCount >= 1);
-                updateSlot('slotB', 'addrB', res.slotB_User, res.filledCount >= 2);
-                updateSlot('slotC', 'addrC', res.slotC_User, res.filledCount >= 3);
+    // Logic Functions
+    async function handleApprove() {
+        const id = document.getElementById('buyPkgId').value;
+        const price = await contract.packages(id);
+        const tx = await usdt.approve(CONTRACT_ADDR, price);
+        await tx.wait();
+        alert("USDT Approved!");
+    }
 
-                let st = "Waiting for members...";
-                if(res.filledCount == 1) st = "Slot A filled: Auto-rebirth triggered for Slot B.";
-                if(res.filledCount == 2) st = "Slot B filled: Matrix income sent to owner!";
-                if(res.filledCount == 3) st = "Slot C filled: Node cycled. New rebirth in global pool.";
-                document.getElementById('m_status').innerText = st;
+    async function handleBuy() {
+        const id = document.getElementById('buyPkgId').value;
+        const tx = await contract.buyPackage(id);
+        await tx.wait();
+        loadAllData();
+        alert("Package Activated!");
+    }
 
-            } catch (e) { alert("Matrix Index not found."); }
-        }
+    async function handleRegister() {
+        const ref = document.getElementById('refAddr').value || "0x0000000000000000000000000000000000000000";
+        const tx = await contract.register(ref);
+        await tx.wait();
+        alert("Registration Successful!");
+    }
 
-        function updateSlot(slotId, addrId, address, isFilled) {
-            const slotEl = document.getElementById(slotId);
-            const addrEl = document.getElementById(addrId);
-            if(isFilled && address !== "0x0000000000000000000000000000000000000000") {
-                slotEl.classList.add('filled');
-                addrEl.innerText = address.substring(0,6) + "..." + address.substring(38);
-            } else {
-                slotEl.classList.remove('filled');
-                addrEl.innerText = "Empty";
-            }
-        }
+    async function handleWithdraw() {
+        const tx = await contract.withdraw();
+        await tx.wait();
+        loadAllData();
+    }
+</script>
 
-        // --- Other Utility Functions (Withdraw, Buy, Register) ---
-        async function approveUSDT() {
-            try {
-                const id = document.getElementById('pkgId').value;
-                const pkgData = await contract.packages(id);
-                const tx = await usdtContract.approve(CONTRACT_ADDRESS, pkgData.price);
-                await tx.wait();
-                alert("Approval Success!");
-            } catch (e) { alert("Failed: " + e.message); }
-        }
-
-        async function buyPackage() {
-            try {
-                const id = document.getElementById('pkgId').value;
-                const tx = await contract.buyPackage(id, { gasLimit: 2000000 });
-                await tx.wait();
-                alert("Purchase Success!");
-                loadUserStats();
-            } catch (e) { alert("Purchase Failed. check allowance/balance."); }
-        }
-
-        async function withdrawFunds() {
-            try {
-                const tx = await contract.withdraw();
-                await tx.wait();
-                loadUserStats();
-            } catch (e) { alert("Withdraw Failed"); }
-        }
-
-        async function registerUser() {
-            try {
-                const ref = document.getElementById('refAddress').value || "0x0000000000000000000000000000000000000000";
-                const tx = await contract.register(ref);
-                await tx.wait();
-                alert("Registered!");
-            } catch (e) { alert("Failed"); }
-        }
-    </script>
 </body>
 </html>
